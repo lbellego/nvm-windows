@@ -4,7 +4,7 @@ SET ORIG=%CD%
 REM SET GOPATH=%CD%\src
 SET GOBIN=%CD%\bin
 REM Support for older architectures
-SET GOARCH=386
+SET GOARCH=amd64
 
 REM Cleanup existing build if it exists
 if exist src\nvm.exe (
@@ -19,8 +19,7 @@ REM Group the file with the helper binaries
 move nvm.exe %GOBIN%
 
 REM Codesign the executable
-.\buildtools\signtools\x64\signtool.exe sign /debug /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a %GOBIN%\nvm.exe
-
+rem "C:\Windows Kits\10\bin\10.0.18362.0\x64\signtool.exe" sign /debug /a /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a %GOBIN%\nvm.exe
 
 for /f %%i in ('%GOBIN%\nvm.exe version') do set AppVersion=%%i
 echo nvm.exe v%AppVersion% built.
@@ -38,11 +37,12 @@ REM Create the distribution directory
 mkdir "%DIST%"
 
 REM Create the "no install" zip version
-for %%a in (%GOBIN%) do (buildtools\zip -j -9 -r "%DIST%\nvm-noinstall.zip" "%CD%\LICENSE" "%%a\*" -x "%GOBIN%\nodejs.ico")
+rem for %%a in (%GOBIN%) do (buildtools\zip -j -9 -r "%DIST%\nvm-noinstall.zip" "%CD%\LICENSE" "%%a\*" -x "%GOBIN%\nodejs.ico")
+for %%a in (%GOBIN%) do ("C:\Program Files\7-Zip\7z.exe" a "%DIST%\nvm-noinstall.zip" "%CD%\LICENSE" "%%a\*")
 
 REM Generate the installer (InnoSetup)
-buildtools\iscc %INNOSETUP% /o%DIST%
-buildtools\zip -j -9 -r "%DIST%\nvm-setup.zip" "%DIST%\nvm-setup.exe"
+"C:\Program Files (x86)\Inno Setup 6\iscc" %INNOSETUP% /o%DIST%
+rem buildtools\zip -j -9 -r "%DIST%\nvm-setup.zip" "%DIST%\nvm-setup.exe"
 
 REM Generate checksums
 for %%f in (%DIST%\*.*) do (certutil -hashfile "%%f" MD5 | find /i /v "md5" | find /i /v "certutil" >> "%%f.checksum.txt")

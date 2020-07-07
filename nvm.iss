@@ -13,8 +13,8 @@
 ; Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
 PrivilegesRequired=admin
-SignTool=MsSign $f
-SignedUninstaller=yes
+;SignTool=MsSign $f
+;SignedUninstaller=yes
 AppId=40078385-F676-4C61-9A9C-F9028599D6D3
 AppName={#MyAppName}
 AppVersion={%AppVersion}
