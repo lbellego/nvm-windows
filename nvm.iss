@@ -317,8 +317,6 @@ Filename: "{cmd}"; Parameters: "/C ""mklink /D ""{code:getSymLink}"" ""{code:get
 
 [UninstallDelete]
 Type: files; Name: "{app}\nvm.exe";
-Type: files; Name: "{app}\elevate.cmd";
-Type: files; Name: "{app}\elevate.vbs";
 Type: files; Name: "{app}\nodejs.ico";
 Type: files; Name: "{app}\settings.txt";
 Type: filesandordirs; Name: "{app}";

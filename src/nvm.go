@@ -1,12 +1,10 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -20,10 +18,11 @@ import (
 	"./nvm/web"
 	"github.com/olekukonko/tablewriter"
 	"golang.org/x/sys/windows"
+	"tawesoft.co.uk/go/dialog"
 )
 
 const (
-	NvmVersion = "1.1.11"
+	NvmVersion = "1.1.12"
 )
 
 type Environment struct {
@@ -469,25 +468,27 @@ func createSymLink(version string) {
 	fmt.Println("Create symlink:", filepath.Join(env.data, "v"+version))
 	_ = os.MkdirAll(filepath.Dir(env.symlink), os.ModePerm)
 
-	runElevated(fmt.Sprintf(`"%s" cmd /C mklink /D "%s" "%s"`, filepath.Join(env.root, "elevate.cmd"), filepath.Clean(env.symlink), filepath.Join(env.data, "v"+version)))
-	sym, _ := os.Stat(env.symlink)
-	if sym == nil {
+	if err := os.Symlink(filepath.Join(env.data, "v"+version), filepath.Clean(env.symlink)); err != nil {
 		if elevat {
 			runMeElevated()
 			os.Exit(0)
 		} else {
-			log.Fatal("unable to mklink /D %s -> %s", filepath.Clean(env.symlink), filepath.Join(env.data, "v"+version))
+			dialog.Alert(err.Error())
+			log.Fatal("unable to mklink /D %s -> %s  : %s", filepath.Clean(env.symlink), filepath.Join(env.data, "v"+version), err.Error())
 		}
 	}
 }
 
 func removeSymLink() {
-	sym, _ := os.Stat(env.symlink)
-	if sym != nil {
+	if _, err := os.Lstat(filepath.Clean(env.symlink)); err == nil {
 		err := os.Remove(filepath.Clean(env.symlink))
 		if err != nil && elevat {
 			runMeElevated()
 			os.Exit(0)
+		}
+		if err != nil {
+			dialog.Alert(err.Error())
+			log.Fatal("unable to remove %s", filepath.Clean(env.symlink))
 		}
 	}
 }
@@ -617,7 +618,6 @@ func enable() {
 }
 
 func disable() {
-	// runElevated(fmt.Sprintf(`"%s" cmd /C rmdir "%s"`,filepath.Join(env.root, "elevate.cmd"),	filepath.Clean(env.symlink)))
 	removeSymLink()
 
 	fmt.Println("nvm disabled")
@@ -644,7 +644,7 @@ func help() {
 	fmt.Println("  nvm use [version] [arch]     : Switch to use the specified version or use \"latest\" to switch to the latest installed version, or \"lts\" for the latest LTS. Optionally specify 32/64bit architecture.")
 	fmt.Println("                                 nvm use <arch> will continue using the selected version, but switch to 32/64 bit mode.")
 	fmt.Println("  nvm data [path]              : Set the directory where nvm should store different versions of node.js.")
-	fmt.Println("                                 If <path> is not set, the current root will be displayed.")
+	fmt.Println("                                 If <path> is not set, the current data path will be displayed.")
 	fmt.Println("  nvm version                  : Displays the current running version of nvm for Windows. Aliased as v.")
 	fmt.Println(" ")
 }
@@ -712,10 +712,6 @@ func updateDataDir(path string) {
 	currentRoot := env.data
 	env.data = filepath.Clean(path)
 
-	// Copy command files
-	// _ = os.Link(filepath.Clean(currentRoot+"/elevate.cmd"), filepath.Clean(env.root+"/elevate.cmd"))
-	// _ = os.Link(filepath.Clean(currentRoot+"/elevate.vbs"), filepath.Clean(env.root+"/elevate.vbs"))
-
 	saveSettings()
 
 	if currentRoot != env.data {
@@ -753,28 +749,6 @@ func amAdmin() bool {
 		return false
 	}
 	// fmt.Println("admin yes")
-	return true
-}
-
-func runElevated(command string) bool {
-
-	c := exec.Command("cmd") // dummy executable that actually needs to exist but we'll overwrite using .SysProcAttr
-
-	// Based on the official docs, syscall.SysProcAttr.CmdLine doesn't exist.
-	// But it does and is vital:
-	// https://github.com/golang/go/issues/15566#issuecomment-333274825
-	// https://medium.com/@felixge/killing-a-child-process-and-all-of-its-children-in-go-54079af94773
-	c.SysProcAttr = &syscall.SysProcAttr{CmdLine: command}
-
-	var stderr bytes.Buffer
-	c.Stderr = &stderr
-
-	err := c.Run()
-	if err != nil {
-		// fmt.Println(fmt.Sprint(err) + ": " + stderr.String())
-		return false
-	}
-
 	return true
 }
 
