@@ -1,4 +1,5 @@
-root: C:\Users\belle\AppData\Roaming\nvm
+root: C:\Program Files\nvm
 path: C:\Program Files\nodejs
+data: C:\ProgramData\nvm
 arch: 64
 proxy: none

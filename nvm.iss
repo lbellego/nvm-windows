@@ -2,16 +2,18 @@
 #define MyAppShortName "nvm"
 #define MyAppLCShortName "nvm"
 #define MyAppVersion ""
-#define MyAppPublisher "Ecor Ventures LLC"
-#define MyAppURL "https://github.com/coreybutler/nvm-windows"
+#define MyAppPublisher "PicbelSoft"
+#define MyAppURL "https://github.com/lbellego/nvm-windows"
 #define MyAppExeName "nvm.exe"
 #define MyIcon "bin\nodejs.ico"
 #define ProjectRoot "."
+#define NodeData "C:\ProgramData\nvm"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
 ; Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
+AlwaysRestart=no
 PrivilegesRequired=admin
 ;SignTool=MsSign $f
 ;SignedUninstaller=yes
@@ -23,8 +25,8 @@ AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
-DefaultDirName={userappdata}\{#MyAppShortName}
-DisableDirPage=no
+DefaultDirName={autopf}\{#MyAppShortName}
+DisableDirPage=auto
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 LicenseFile={#ProjectRoot}\LICENSE
@@ -37,7 +39,7 @@ ChangesEnvironment=yes
 DisableProgramGroupPage=yes
 ArchitecturesInstallIn64BitMode=x64 ia64
 UninstallDisplayIcon={app}\{#MyIcon}
-AppCopyright=Copyright (C) 2018 Ecor Ventures LLC and contributors.
+AppCopyright=Copyright (C) 2020 PicbelSoft
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -84,7 +86,8 @@ var
   path: string;
 begin
   // Move the existing node.js installation directory to the nvm root & update the path
-  RenameFile(np,ExpandConstant('{app}')+'\'+nv);
+  //RenameFile(np,ExpandConstant('{app}')+'\'+nv);
+  RenameFile(np,ExpandConstant('{#NodeData}')+'\'+nv);
 
   RegQueryStringValue(HKEY_LOCAL_MACHINE,
     'SYSTEM\CurrentControlSet\Control\Session Manager\Environment',
@@ -106,7 +109,7 @@ begin
 
   RegWriteExpandStringValue(HKEY_CURRENT_USER, 'Environment', 'Path', path);
 
-  nodeInUse := ExpandConstant('{app}')+'\'+nv;
+  nodeInUse := ExpandConstant('{#NodeData}')+'\'+nv;
 
 end;
 
@@ -140,12 +143,15 @@ begin
   // Execute the node file and save the output temporarily
   TmpResultFile := ExpandConstant('{tmp}') + '\nvm_node_check.txt';
   Exec(ExpandConstant('{cmd}'), '/C node "'+TmpJS+'" > "' + TmpResultFile + '"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  DeleteFile(TmpJS)
+  DeleteFile(TmpJS);
+
+  // make sure nvm data folder exists
+  CreateDir(ExpandConstant('{#NodeData}'));
 
   // Process the results
   LoadStringFromFile(TmpResultFile,stdout);
   NodePath := Trim(Ansi2String(stdout));
-  if DirExists(NodePath) then begin
+  if DirExists(NodePath) and (Pos(Lowercase(ExpandConstant('{#NodeData}')), Lowercase(NodePath)) = 0) then begin
     Exec(ExpandConstant('{cmd}'), '/C node -v > "' + TmpResultFile + '"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     LoadStringFromFile(TmpResultFile, stdout);
     NodeVersion := Trim(Ansi2String(stdout));
@@ -173,7 +179,7 @@ begin
     if dir1 then begin
       RemoveDir(SymlinkPage.Values[0]);
     end;
-    if not dir1 then begin
+    if not dir1 and (Pos(Lowercase(ExpandConstant('{#NodeData}')), Lowercase(SymlinkPage.Values[0])) = 0) then begin
       msg3 := SuppressibleMsgBox(SymlinkPage.Values[0]+' will be overwritten and all contents will be lost. Do you want to proceed?', mbConfirmation, MB_OKCANCEL, IDOK) = IDOK;
       if msg3 then begin
         RemoveDir(SymlinkPage.Values[0]);
@@ -193,7 +199,7 @@ begin
     'Select the folder in which Setup should create the symlink, then click Next.',
     False, '');
   SymlinkPage.Add('This directory will automatically be added to your system path.');
-  SymlinkPage.Values[0] := ExpandConstant('{pf}\nodejs');
+  SymlinkPage.Values[0] := ExpandConstant('{#NodeData}\nodejs');
 end;
 
 function InitializeUninstall(): Boolean;
@@ -316,3 +322,4 @@ Type: files; Name: "{app}\elevate.vbs";
 Type: files; Name: "{app}\nodejs.ico";
 Type: files; Name: "{app}\settings.txt";
 Type: filesandordirs; Name: "{app}";
+Type: filesandordirs; Name: "{#NodeData}";
