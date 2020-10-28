@@ -204,10 +204,17 @@ end;
 
 function InitializeUninstall(): Boolean;
 var
-  path: string;
+  path, txtValSymlink, txtValNVM: string;
   nvm_symlink: string;
 begin
   SuppressibleMsgBox('Removing NVM for Windows will remove the nvm command and all versions of node.js, including global npm modules.', mbInformation, MB_OK, IDOK);
+
+  RegQueryStringValue(HKEY_LOCAL_MACHINE,
+    'SYSTEM\CurrentControlSet\Control\Session Manager\Environment',
+    'NVM_SYMLINK', txtValSymlink);
+  RegQueryStringValue(HKEY_LOCAL_MACHINE,
+      'SYSTEM\CurrentControlSet\Control\Session Manager\Environment',
+      'NVM_HOME', txtValNVM);
 
   // Remove the symlink
   RegQueryStringValue(HKEY_LOCAL_MACHINE,
@@ -222,19 +229,19 @@ begin
   RegDeleteValue(HKEY_LOCAL_MACHINE,
     'SYSTEM\CurrentControlSet\Control\Session Manager\Environment',
     'NVM_SYMLINK')
-  RegDeleteValue(HKEY_CURRENT_USER,
-    'Environment',
-    'NVM_HOME')
-  RegDeleteValue(HKEY_CURRENT_USER,
-    'Environment',
-    'NVM_SYMLINK')
+  //RegDeleteValue(HKEY_CURRENT_USER,
+  //  'Environment',
+  //  'NVM_HOME')
+  //RegDeleteValue(HKEY_CURRENT_USER,
+  //  'Environment',
+  //  'NVM_SYMLINK')
 
   RegQueryStringValue(HKEY_LOCAL_MACHINE,
     'SYSTEM\CurrentControlSet\Control\Session Manager\Environment',
     'Path', path);
 
-  StringChangeEx(path,'%NVM_HOME%','',True);
-  StringChangeEx(path,'%NVM_SYMLINK%','',True);
+  StringChangeEx(path,txtValNVM,'',True);
+  StringChangeEx(path,txtValSymlink,'',True);
   StringChangeEx(path,';;',';',True);
 
   RegWriteExpandStringValue(HKEY_LOCAL_MACHINE, 'SYSTEM\CurrentControlSet\Control\Session Manager\Environment', 'Path', path);
@@ -264,36 +271,41 @@ begin
     // Add Registry settings
     RegWriteExpandStringValue(HKEY_LOCAL_MACHINE, 'SYSTEM\CurrentControlSet\Control\Session Manager\Environment', 'NVM_HOME', ExpandConstant('{app}'));
     RegWriteExpandStringValue(HKEY_LOCAL_MACHINE, 'SYSTEM\CurrentControlSet\Control\Session Manager\Environment', 'NVM_SYMLINK', SymlinkPage.Values[0]);
-    RegWriteExpandStringValue(HKEY_CURRENT_USER, 'Environment', 'NVM_HOME', ExpandConstant('{app}'));
-    RegWriteExpandStringValue(HKEY_CURRENT_USER, 'Environment', 'NVM_SYMLINK', SymlinkPage.Values[0]);
+    //RegWriteExpandStringValue(HKEY_CURRENT_USER, 'Environment', 'NVM_HOME', ExpandConstant('{app}'));
+    //RegWriteExpandStringValue(HKEY_CURRENT_USER, 'Environment', 'NVM_SYMLINK', SymlinkPage.Values[0]);
 
     // Update system and user PATH if needed
     RegQueryStringValue(HKEY_LOCAL_MACHINE,
       'SYSTEM\CurrentControlSet\Control\Session Manager\Environment',
       'Path', path);
-    if Pos('%NVM_HOME%',path) = 0 then begin
-      path := path+';%NVM_HOME%';
+    //if Pos('%NVM_HOME%',path) = 0 then begin
+    //  path := path+';%NVM_HOME%';
+    if Pos(ExpandConstant('{app}'),path) = 0 then begin
+      path := path+';'+ExpandConstant('{app}');
       StringChangeEx(path,';;',';',True);
       RegWriteExpandStringValue(HKEY_LOCAL_MACHINE, 'SYSTEM\CurrentControlSet\Control\Session Manager\Environment', 'Path', path);
     end;
-    if Pos('%NVM_SYMLINK%',path) = 0 then begin
-      path := path+';%NVM_SYMLINK%';
+    //if Pos('%NVM_SYMLINK%',path) = 0 then begin
+    //  path := path+';%NVM_SYMLINK%';
+    if Pos(SymlinkPage.Values[0],path) = 0 then begin
+      path := path+';'+SymlinkPage.Values[0];
       StringChangeEx(path,';;',';',True);
       RegWriteExpandStringValue(HKEY_LOCAL_MACHINE, 'SYSTEM\CurrentControlSet\Control\Session Manager\Environment', 'Path', path);
     end;
-    RegQueryStringValue(HKEY_CURRENT_USER,
-      'Environment',
-      'Path', path);
-    if Pos('%NVM_HOME%',path) = 0 then begin
-      path := path+';%NVM_HOME%';
-      StringChangeEx(path,';;',';',True);
-      RegWriteExpandStringValue(HKEY_CURRENT_USER, 'Environment', 'Path', path);
-    end;
-    if Pos('%NVM_SYMLINK%',path) = 0 then begin
-      path := path+';%NVM_SYMLINK%';
-      StringChangeEx(path,';;',';',True);
-      RegWriteExpandStringValue(HKEY_CURRENT_USER, 'Environment', 'Path', path);
-    end;
+
+    //RegQueryStringValue(HKEY_CURRENT_USER,
+    //  'Environment',
+    //  'Path', path);
+    //if Pos('%NVM_HOME%',path) = 0 then begin
+    //  path := path+';%NVM_HOME%';
+    //  StringChangeEx(path,';;',';',True);
+    //  RegWriteExpandStringValue(HKEY_CURRENT_USER, 'Environment', 'Path', path);
+    //end;
+    //if Pos('%NVM_SYMLINK%',path) = 0 then begin
+    //  path := path+';%NVM_SYMLINK%';
+    //  StringChangeEx(path,';;',';',True);
+    //  RegWriteExpandStringValue(HKEY_CURRENT_USER, 'Environment', 'Path', path);
+    //end;
   end;
 end;
 
